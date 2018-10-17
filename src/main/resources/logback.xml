@@ -1,0 +1,28 @@
+<configuration debug="true" scan="true" scanPeriod="15 seconds">
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- We output the timezone for disambiguation across the different environments. -->
+            <pattern>[%d{ISO8601} %d{Z}] [%highlight(%level)] [%logger{10}] %msg%n</pattern>
+        </encoder>
+    </appender>
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>log/jmx.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <!-- We output the timezone for disambiguation across the different environments. -->
+            <pattern>[%d{ISO8601} %d{Z}] [%highlight(%level)] [%logger{10}] %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="com.nhnent.ongame.adaptor.LCSUnlocker" level="DEBUG" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <root>
+        <level value="INFO"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>
