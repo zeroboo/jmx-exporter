@@ -1,4 +1,4 @@
-<configuration debug="true" scan="true" scanPeriod="15 seconds">
+<configuration debug="false" scan="true" scanPeriod="15 seconds">
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <!-- We output the timezone for disambiguation across the different environments. -->
@@ -16,12 +16,13 @@
         </encoder>
     </appender>
 
-    <logger name="com.nhnent.ongame.adaptor.LCSUnlocker" level="DEBUG" additivity="false">
-        <appender-ref ref="STDOUT"/>
+    <logger name="com.zboo.tool.JmxExporter" level="DEBUG" additivity="true">
+        <appender-ref ref="FILE"/>
+
     </logger>
 
     <root>
-        <level value="INFO"/>
+        <level value="DEBUG"/>
         <appender-ref ref="FILE"/>
         <appender-ref ref="STDOUT"/>
     </root>
