@@ -3,10 +3,7 @@ package com.zboo.tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.management.JMRuntimeException;
-import javax.management.MBeanAttributeInfo;
-import javax.management.MBeanInfo;
-import javax.management.ObjectName;
+import javax.management.*;
 import javax.management.openmbean.CompositeData;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -37,7 +34,7 @@ public class TextJmxObjectReporter extends JmxObjectReporter {
             for (ObjectName name : names) {
                 logger.info("Reporting object: {}", name.toString());
                 String objectData = this.makeReportObjectName(name);
-                ps.println(objectData.getBytes());
+                ps.println(objectData);
             }
 
             logger.info("DONE");
