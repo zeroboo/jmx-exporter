@@ -48,13 +48,15 @@ public class JsonJmxObjectReporter extends JmxObjectReporter {
         OutputStream os = null;
         Path path = Paths.get(outputFile);
         logger.info("START");
+        logger.info("Included object names: {}", !this.includeObjectNames.isEmpty()?this.includeObjectNames.toString():"ALL");
+
         try {
 
             os = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             JsonWriter writer = new JsonWriter(new OutputStreamWriter(os, "UTF-8"));
             writer.setHtmlSafe(false);
             writer.setSerializeNulls(true);
-            writer.setIndent("   ");
+            writer.setIndent(" ");///Also turn pretty on/of
             writer.beginObject();
             writer.name("title");
             writer.value(reportTitle);
@@ -67,75 +69,80 @@ public class JsonJmxObjectReporter extends JmxObjectReporter {
             gsonNormal.toJson(nameList, nameList.getClass(), writer);
 
             writer.name("objects");
-
-            writer.beginArray();
+            writer.beginObject();
 
             for (ObjectName name : names) {
-                if(name != null) {
-                    logger.info("Reading {}", name.getCanonicalName());
-                    writer.beginObject();
-                    writer.name("name").value(name.getCanonicalName());
-                    writer.name("domain").value(name.getDomain());
-                    writer.name("keys");
-                    gsonNormal.toJson(name.getKeyPropertyList(), name.getKeyPropertyList().getClass(), writer);
+                if(isObjectIncluded(name.getCanonicalName())) {
+                    if (name != null) {
+                        logger.info("Reading {}", name.getCanonicalName());
+                        writer.name(name.getCanonicalName());
+                        writer.beginObject();
 
-                    try {
-                        MBeanInfo info = connection.getMBeanInfo(name);
-                        if (info != null) {
-                            writer.name("beanInfo");
-                            gsonNormal.toJson(info, info.getClass(), writer);
-                            writer.name("attributes");
-                            writer.beginObject();
-                            for (MBeanAttributeInfo x : info.getAttributes()) {
-                                writer.name(x.getName());
+                        writer.name("name").value(name.getCanonicalName());
+                        writer.name("domain").value(name.getDomain());
+                        writer.name("keys").value(name.getKeyPropertyListString());
+
+                        try {
+                            MBeanInfo info = connection.getMBeanInfo(name);
+                            if (info != null) {
+                                ///writer.setIndent("");
+                                writer.name("beanInfo");
+                                gsonNormal.toJson(info, info.getClass(), writer);
+                                writer.name("attributes");
                                 writer.beginObject();
-                                if ( x!= null) {
-                                    writer.name("type").value(x.getType());
-                                    writer.name("name").value(x.getName());
-                                    writer.name("description").value(x.getDescription());
+                                for (MBeanAttributeInfo x : info.getAttributes()) {
+                                    writer.name(x.getName());
+                                    writer.beginObject();
+                                    if (x != null) {
+                                        writer.name("type").value(x.getType());
+                                        writer.name("name").value(x.getName());
+                                        writer.name("description").value(x.getDescription());
 
-                                    logger.debug("\tGetting attribute {}", x.getName());
-                                    try {
-                                        Object data = connection.getAttribute(name, x.getName());
-                                        if(data != null)
-                                        {
-                                            logger.debug("\tGetting attribute {}", x.getName());
-                                            writer.name("value");
-                                            gsonNormal.toJson(data, data.getClass(), writer);
+                                        logger.debug("\tGetting attribute {}", x.getName());
+                                        try {
+                                            Object data = connection.getAttribute(name, x.getName());
+                                            if (data != null) {
+                                                logger.debug("\tGetting attribute {}", x.getName());
+                                                ///writer.setIndent("");
+                                                writer.name("value");
+                                                gsonNormal.toJson(data, data.getClass(), writer);
+                                            } else {
+                                                logger.warn("Exception when get attribute {} of {}", x.getName(), name.getCanonicalName());
+                                                writer.name("attributeData").value("null");
+                                            }
+                                        } catch (RemoteException | JMException | RuntimeMBeanException e) {
+                                            logger.warn("Exception when get attribute {} of {}: {}, {}", x.getName(), name.getCanonicalName(), e.getClass().getName(), e.getMessage());
                                         }
-                                        else
-                                        {
-                                            logger.warn("Exception when get attribute {} of {}", x.getName(), name.getCanonicalName());
-                                            writer.name("attributeData").value("null");
-                                        }
-                                    } catch (RemoteException |JMException|RuntimeMBeanException e) {
-                                        logger.warn("Exception when get attribute {} of {}: {}, {}", x.getName(), name.getCanonicalName(), e.getClass().getName(), e.getMessage());
+                                    } else {
+                                        logger.warn("Meet null info in {} ", name.getCanonicalName());
                                     }
-                                } else {
-                                    logger.warn("Meet null info in {} ", name.getCanonicalName());
+                                    writer.endObject();
+                                    writer.setIndent(" ");
                                 }
                                 writer.endObject();
+                                writer.setIndent(" ");
+                            } else {
+                                logger.error("\tNull bean info in {}", name.getCanonicalName());
+                                writer.name("info").value("");
                             }
-                            writer.endObject();
-                        } else {
-                            logger.error("\tNull bean info in {}", name.getCanonicalName());
-                            writer.name("info").value("");
+
+                        } catch (InstanceNotFoundException e) {
+                            e.printStackTrace();
+                        } catch (IntrospectionException e) {
+                            e.printStackTrace();
+                        } catch (ReflectionException e) {
+                            e.printStackTrace();
                         }
 
-                    } catch (InstanceNotFoundException e) {
-                        e.printStackTrace();
-                    } catch (IntrospectionException e) {
-                        e.printStackTrace();
-                    } catch (ReflectionException e) {
-                        e.printStackTrace();
+                        writer.endObject();
                     }
-
-                    writer.endObject();
+                } else {
+                    logger.info("Object not included: {}", name.getCanonicalName());
                 }
             }
-            writer.endArray(); // ]
+            writer.endObject();
 
-            writer.endObject(); // }
+            writer.endObject();
 
 
             writer.flush();

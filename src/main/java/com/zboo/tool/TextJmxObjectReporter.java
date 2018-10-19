@@ -23,6 +23,7 @@ public class TextJmxObjectReporter extends JmxObjectReporter {
         OutputStream os = null;
         Path path = Paths.get(outputFile);
         logger.info("START");
+        logger.info("Included object names: {}", !this.includeObjectNames.isEmpty()?this.includeObjectNames.toString():"ALL");
         try {
             os = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             PrintStream ps = new PrintStream(os, true, DEFAULT_CHARSET.name());
@@ -32,9 +33,14 @@ public class TextJmxObjectReporter extends JmxObjectReporter {
             Set<ObjectName> names = new TreeSet<ObjectName>(connection.queryNames(null, null));
 
             for (ObjectName name : names) {
-                logger.info("Reporting object: {}", name.toString());
-                String objectData = this.makeReportObjectName(name);
-                ps.println(objectData);
+                if(isObjectIncluded(name.getCanonicalName())) {
+                    logger.info("Reporting object: {}", name.toString());
+                    String objectData = this.makeReportObjectName(name);
+                    ps.println(objectData);
+                }
+                else {
+                    logger.info("Object not included: {}", name.getCanonicalName());
+                }
             }
 
             logger.info("DONE");

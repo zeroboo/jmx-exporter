@@ -82,12 +82,12 @@ public class JmxExporter implements Runnable {
 
     /* For simplicity, we declare "throws Exception".
            Real programs will usually want finer-grained exception handling. */
-    public void ConnectJmx(String host, int port, String urlPath, String reportType, String outputFile, String description) throws Exception {
+    public void ConnectJmx() throws Exception {
 
         // Create an RMI connector client and
         // connect it to the RMI connector server
         logger.info("Create an RMI connector client and connect it to the RMI connector server");
-        String connectionString = String.format("service:jmx:rmi:///jndi/rmi://%s:%d/%s", host, port, urlPath);
+        String connectionString = String.format("service:jmx:rmi:///jndi/rmi://%s:%d/%s", this.jmxRemoteHost, this.jmxRemotePort, this.jmxUrlPath);
 
         Map<String, Object> env = new HashMap<>();
         if(!user.isEmpty() || !pass.isEmpty()) {
@@ -153,13 +153,14 @@ public class JmxExporter implements Runnable {
             reporter = new TextJmxObjectReporter();
         }
         reporter.setConnection(mbsc);
-        reporter.setReportTitle(String.format("Report remote JMX on %s:%d", host, port));
+        reporter.setReportTitle(String.format("Report remote JMX on %s:%d", this.jmxRemoteHost, jmxRemotePort));
         if(description!=null)
         {
             reporter.setReportDescription(description);
         }
         logger.info("Report class: {}", reporter.getClass().getCanonicalName());
         logger.info("Report class: {}", reporter.getClass().getCanonicalName());
+        reporter.addIncludeObjects(objectNames);
         reporter.makeReport(outputFile);
 
         jmxc.close();
@@ -171,7 +172,7 @@ public class JmxExporter implements Runnable {
     @Override
     public void run() {
         try {
-            this.ConnectJmx(jmxRemoteHost, jmxRemotePort, jmxUrlPath, outputFormat, outputFile, description);
+            this.ConnectJmx();
         } catch (Exception e) {
             logger.error("Exception", e);
         }

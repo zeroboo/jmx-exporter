@@ -1,6 +1,5 @@
 package com.zboo.tool;
 
-import com.google.gson.stream.JsonWriter;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.commons.lang.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
@@ -9,29 +8,26 @@ import org.slf4j.LoggerFactory;
 
 import javax.management.*;
 import javax.management.openmbean.CompositeData;
-import java.beans.BeanInfo;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
-public class HtmlJmxObjectReporter extends JmxObjectReporter{
+public class HtmlJmxObjectReporter extends JmxObjectReporter {
     private final transient Logger logger = LoggerFactory.getLogger(getClass());
+
     @Override
-    public void makeReport(String outputFile)
-    {
+    public void makeReport(String outputFile) {
         OutputStream os = null;
         Path path = Paths.get(outputFile);
         logger.info("START");
+        logger.info("Included object names: {}", !this.includeObjectNames.isEmpty() ? this.includeObjectNames.toString() : "ALL");
         try {
 
             os = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
@@ -39,7 +35,7 @@ public class HtmlJmxObjectReporter extends JmxObjectReporter{
             ps.println("<!DOCTYPE html>");
             ps.println("<html>");
             ps.println("<head>");
-                ///ps.println("<link rel=\"stylesheet\" id=\"smartmag-core-css\" href=\"http://scrumbucket.org/wp-content/themes/smart-mag/style.css?ver=2.4.1\" type=\"text/css\" media=\"all\">");
+            ///ps.println("<link rel=\"stylesheet\" id=\"smartmag-core-css\" href=\"http://scrumbucket.org/wp-content/themes/smart-mag/style.css?ver=2.4.1\" type=\"text/css\" media=\"all\">");
             ps.println("</head>");
             ps.println("<body>");
 
@@ -47,11 +43,16 @@ public class HtmlJmxObjectReporter extends JmxObjectReporter{
 
             ps.print("<ol>");
             for (ObjectName obj : names) {
+                if (isObjectIncluded(obj.getCanonicalName())) {
+                    logger.info("Printing object: {}", obj.getCanonicalName());
+                    ps.print("<li>");
+                    ps.println(String.format("<h3>%s</h3>", obj.getCanonicalName()));
 
-                ps.print("<li>");
-                ps.println(String.format("<h3>%s</h3>", obj.getCanonicalName()));
-                ps.println(makeReportObjectName(obj));
-                ps.println("</li>");
+                    ps.println(makeReportObjectName(obj));
+                    ps.println("</li>");
+                } else {
+                    logger.info("Object not included: {}", obj.getCanonicalName());
+                }
             }
             ps.print("</ol>");
             ps.println("</body>");
@@ -60,10 +61,8 @@ public class HtmlJmxObjectReporter extends JmxObjectReporter{
             logger.info("DONE");
         } catch (IOException e) {
             e.printStackTrace();
-        }
-        finally {
-            if(os!=null)
-            {
+        } finally {
+            if (os != null) {
                 try {
                     os.close();
                 } catch (IOException e) {
@@ -81,7 +80,7 @@ public class HtmlJmxObjectReporter extends JmxObjectReporter{
         sb.append("<ul>");
         sb.append(String.format("<li>Properties: %s</li>", obj.getCanonicalKeyPropertyListString()));
         sb.append(String.format("<li>Domain: %s</li>", obj.getDomain()));
-        if(obj != null) {
+        if (obj != null) {
             logger.info("Reading {}", obj.getCanonicalName());
             try {
                 MBeanInfo info = connection.getMBeanInfo(obj);
@@ -96,21 +95,18 @@ public class HtmlJmxObjectReporter extends JmxObjectReporter{
                     sb.append("<table>");
                     sb.append("<thead><tr><th>Name</th><th>Type</th><th>Value</th></tr></thead>");
                     for (MBeanAttributeInfo attributeInfo : info.getAttributes()) {
-                        if ( attributeInfo!= null) {
+                        if (attributeInfo != null) {
                             logger.debug("\tGetting attribute {}", attributeInfo.getName());
                             try {
                                 Object data = connection.getAttribute(obj, attributeInfo.getName());
 
-                                if(data instanceof ObjectName)
-                                {
+                                if (data instanceof ObjectName) {
 
-                                    logger.debug("Catch an ObjectName {} inside ObjectName {} ", ((ObjectName)data).getCanonicalName(), obj.getCanonicalName());
-                                }
-                                else
-                                {
+                                    logger.debug("Catch an ObjectName {} inside ObjectName {} ", ((ObjectName) data).getCanonicalName(), obj.getCanonicalName());
+                                } else {
                                     sb.append(makeHtmlRow(obj, attributeInfo, data));
                                 }
-                            } catch (IOException |JMException |RuntimeMBeanException e) {
+                            } catch (IOException | JMException | RuntimeMBeanException e) {
                                 logger.warn("Exception when get attribute {} of {}: {}, {}", attributeInfo.getName(), obj.getCanonicalName(), e.getClass().getName(), e.getMessage());
                             }
                         } else {
@@ -136,8 +132,7 @@ public class HtmlJmxObjectReporter extends JmxObjectReporter{
         return sb.toString();
     }
 
-    public String makeHtmlRow(ObjectName bean, MBeanAttributeInfo beanAttributeInfo, Object beanAtributeData)
-    {
+    public String makeHtmlRow(ObjectName bean, MBeanAttributeInfo beanAttributeInfo, Object beanAtributeData) {
         StringBuilder sb = new StringBuilder();
         ///sb.append("<h4>").append(beanAttributeInfo.getName()).append("</h4>");
         sb.append("<tr>");
@@ -155,35 +150,31 @@ public class HtmlJmxObjectReporter extends JmxObjectReporter{
 
                 sb.append("<td>");
                 sb.append("<ul>");
-                for(String value: (String[])beanAtributeData)
-                {
+                for (String value : (String[]) beanAtributeData) {
                     sb.append("<li>").append(value).append("</li>");
                 }
                 sb.append("</ul>");
                 sb.append("</td>");
 
-            }
-            else if (beanAtributeData instanceof int[]) {
+            } else if (beanAtributeData instanceof int[]) {
                 sb.append("<td>");
                 sb.append("int[]");
                 sb.append("</td>");
 
                 sb.append("<td>");
-                sb.append(Arrays.toString((int[])beanAtributeData));
+                sb.append(Arrays.toString((int[]) beanAtributeData));
                 sb.append("</td>");
-            }
-            else if (beanAtributeData instanceof long[]) {
+            } else if (beanAtributeData instanceof long[]) {
                 sb.append("<td>");
                 sb.append("int[]");
                 sb.append("</td>");
 
                 sb.append("<td>");
                 sb.append("<td>");
-                sb.append(Arrays.toString((long[])beanAtributeData));
+                sb.append(Arrays.toString((long[]) beanAtributeData));
                 sb.append("</td>");
                 sb.append("</td>");
-            }
-            else if (beanAtributeData instanceof CompositeData) {
+            } else if (beanAtributeData instanceof CompositeData) {
                 sb.append("<td>");
                 sb.append("CompositeData");
                 sb.append("</td>");
@@ -191,35 +182,33 @@ public class HtmlJmxObjectReporter extends JmxObjectReporter{
 
                 for (String key : dataSupport.getCompositeType().keySet()) {
                     sb.append("<li>")
-                        .append(key)
-                        .append(":")
-                        .append(dataSupport.get(key));
+                            .append(key)
+                            .append(":")
+                            .append(dataSupport.get(key));
 
                     sb.append("</li>");
                 }
                 sb.append("</ul>");
-            }
-            else if (beanAtributeData instanceof CompositeData[]) {
+            } else if (beanAtributeData instanceof CompositeData[]) {
                 sb.append("<td>");
                 sb.append("CompositeData[]");
                 sb.append("</td>");
                 CompositeData[] dataList = (CompositeData[]) beanAtributeData;
 
                 sb.append("<td>");
-                for (CompositeData subData: dataList) {
+                for (CompositeData subData : dataList) {
                     sb.append("<ul>");
-                    for(String key: subData.getCompositeType().keySet())
-                    sb.append("<li>")
-                            .append(key).append("(").append(subData.getCompositeType().getClassName()).append(")")
-                            .append(": ")
-                            .append(subData.get(key).toString());
+                    for (String key : subData.getCompositeType().keySet())
+                        sb.append("<li>")
+                                .append(key).append("(").append(subData.getCompositeType().getClassName()).append(")")
+                                .append(": ")
+                                .append(subData.get(key).toString());
                     sb.append("</li>");
                     sb.append("</ul>");
                 }
                 sb.append("</ul>");
                 sb.append("</td>");
-            }
-            else {
+            } else {
                 sb.append("<td>");
                 sb.append(beanAtributeData.getClass().getCanonicalName());
                 sb.append("</td>");
@@ -229,9 +218,6 @@ public class HtmlJmxObjectReporter extends JmxObjectReporter{
                 sb.append("</td>");
 
             }
-
-
-
 
 
         } else {
@@ -246,15 +232,15 @@ public class HtmlJmxObjectReporter extends JmxObjectReporter{
     private static final class HTMLStyle extends ToStringStyle {
 
         public HTMLStyle() {
-            setFieldSeparator("</td></tr>"+ SystemUtils.LINE_SEPARATOR + "<tr><td>");
+            setFieldSeparator("</td></tr>" + SystemUtils.LINE_SEPARATOR + "<tr><td>");
 
-            setContentStart("<table>"+ SystemUtils.LINE_SEPARATOR +
+            setContentStart("<table>" + SystemUtils.LINE_SEPARATOR +
                     "<thead><tr><th>Field</th><th>Data</th></tr></thead>" +
                     "<tbody><tr><td>");
 
             setFieldNameValueSeparator("</td><td>");
 
-            setContentEnd("</td></tr>"+ SystemUtils.LINE_SEPARATOR + "</tbody></table>");
+            setContentEnd("</td></tr>" + SystemUtils.LINE_SEPARATOR + "</tbody></table>");
 
             setArrayContentDetail(true);
             setUseShortClassName(true);
@@ -273,6 +259,6 @@ public class HtmlJmxObjectReporter extends JmxObjectReporter{
     }
 
     static public String makeHTML(Object object) {
-        return	ReflectionToStringBuilder.toString(object, new HTMLStyle());
+        return ReflectionToStringBuilder.toString(object, new HTMLStyle());
     }
 }

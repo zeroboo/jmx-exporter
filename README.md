@@ -15,16 +15,16 @@ On project folder run
 ```maven
 mvn clean package
 ```
-Go to folder target and execute the jar for Usage
+Go to folder target and execute the jar file for printing out usage
 ```
-java -jar jmx-reporter-1.0-full.jar
+java -jar jmx-exporter-0.0.1-full.jar
 ```
 
 ---
 
 # Usage
 
-java -jar jmx-reporter-1.0-full.jar [-ssl] [-d=Description] -f=Format of output file
+java -jar jmx-exporter-1.0-full.jar [-ssl] [-d=Description] -f=Format of output file
                    -h=RemoteHost -o=OutputFile -p=RemotePort [-ps=Password]
                    [-u=JMX url path] [-us=Username] [Object names...]
 `
