@@ -5,9 +5,9 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>zboo</groupId>
-  <artifactId>jmx-exporter</artifactId>
+  <artifactId>jmx-reporter</artifactId>
   <version>0.0.1</version>
-  <name>jmx-exporter</name>
+  <name>jmx-reporter</name>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -171,7 +171,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        com.zboo.tool.JmxExporter
+                                        com.zboo.tool.JmxReporter
                                     </mainClass>
                                 </manifest>
                             </archive>

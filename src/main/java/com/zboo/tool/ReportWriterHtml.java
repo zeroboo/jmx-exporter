@@ -16,115 +16,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.Map;
 
-public class HtmlJmxObjectReporter extends JmxObjectReporter {
+public class ReportWriterHtml implements IReportWriter{
     private final transient Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Override
-    public void makeReport(String outputFile) {
-        OutputStream os = null;
-        Path path = Paths.get(outputFile);
-        logger.info("START");
-        logger.info("Included object names: {}", !this.includeObjectNames.isEmpty() ? this.includeObjectNames.toString() : "ALL");
-        try {
 
-            os = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            PrintStream ps = new PrintStream(os, true, "UTF-8");
-            ps.println("<!DOCTYPE html>");
-            ps.println("<html>");
-            ps.println("<head>");
-            ///ps.println("<link rel=\"stylesheet\" id=\"smartmag-core-css\" href=\"http://scrumbucket.org/wp-content/themes/smart-mag/style.css?ver=2.4.1\" type=\"text/css\" media=\"all\">");
-            ps.println("</head>");
-            ps.println("<body>");
 
-            Set<ObjectName> names = new TreeSet<ObjectName>(connection.queryNames(null, null));
 
-            ps.print("<ol>");
-            for (ObjectName obj : names) {
-                if (isObjectIncluded(obj.getCanonicalName())) {
-                    logger.info("Printing object: {}", obj.getCanonicalName());
-                    ps.print("<li>");
-                    ps.println(String.format("<h3>%s</h3>", obj.getCanonicalName()));
-
-                    ps.println(makeReportObjectName(obj));
-                    ps.println("</li>");
-                } else {
-                    logger.info("Object not included: {}", obj.getCanonicalName());
-                }
-            }
-            ps.print("</ol>");
-            ps.println("</body>");
-            ps.println("</html>");
-            ps.close();
-            logger.info("DONE");
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (os != null) {
-                try {
-                    os.close();
-                } catch (IOException e) {
-                    logger.error("Exception when close file", e);
-                }
-            }
-        }
-        logger.info("Report to file: {}", path.toAbsolutePath().toString());
-
-    }
-
-    @Override
-    public String makeReportObjectName(ObjectName obj) {
+    public String makeReportJmxObject(Object obj) {
         StringBuilder sb = new StringBuilder();
         sb.append("<ul>");
-        sb.append(String.format("<li>Properties: %s</li>", obj.getCanonicalKeyPropertyListString()));
-        sb.append(String.format("<li>Domain: %s</li>", obj.getDomain()));
         if (obj != null) {
-            logger.info("Reading {}", obj.getCanonicalName());
-            try {
-                MBeanInfo info = connection.getMBeanInfo(obj);
-                if (info != null) {
-                    sb.append("<li>");
-                    sb.append("Bean info");
-                    sb.append("<ul>");
-                    sb.append(String.format("<li>Classname: %s</li>", info.getClassName()));
-                    sb.append(String.format("<li>Description: %s</li>", info.getDescription()));
-                    sb.append("<li>");
-                    sb.append("Attributes");
-                    sb.append("<table>");
-                    sb.append("<thead><tr><th>Name</th><th>Type</th><th>Value</th></tr></thead>");
-                    for (MBeanAttributeInfo attributeInfo : info.getAttributes()) {
-                        if (attributeInfo != null) {
-                            logger.debug("\tGetting attribute {}", attributeInfo.getName());
-                            try {
-                                Object data = connection.getAttribute(obj, attributeInfo.getName());
 
-                                if (data instanceof ObjectName) {
-
-                                    logger.debug("Catch an ObjectName {} inside ObjectName {} ", ((ObjectName) data).getCanonicalName(), obj.getCanonicalName());
-                                } else {
-                                    sb.append(makeHtmlRow(obj, attributeInfo, data));
-                                }
-                            } catch (IOException | JMException | RuntimeMBeanException e) {
-                                logger.warn("Exception when get attribute {} of {}: {}, {}", attributeInfo.getName(), obj.getCanonicalName(), e.getClass().getName(), e.getMessage());
-                            }
-                        } else {
-                            logger.warn("Meet null info in {} ", obj.getCanonicalName());
-                        }
-
-                    }
-                    sb.append("</table>");
-                    sb.append("</li>");
-                    sb.append("</ul>");
-                    sb.append("</li>");
-                } else {
-                    logger.error("\tNull bean info in {}", obj.getCanonicalName());
-                }
-
-            } catch (Exception e) {
-                logger.warn("Load object exception: {}, {}, {}", obj.getCanonicalName(), e.getClass(), e.getMessage());
-            }
         }
         sb.append("</ul>");
         sb.append("</li>");
@@ -226,6 +130,47 @@ public class HtmlJmxObjectReporter extends JmxObjectReporter {
         }
         sb.append("</tr>");
         return sb.toString();
+    }
+
+    @Override
+    public void renderToFile(String outputFile, JmxObjectReporter reporter) throws IOException {
+        OutputStream os = null;
+        Path path = Paths.get(outputFile);
+        logger.info("START");
+        try {
+
+            os = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            PrintStream ps = new PrintStream(os, true, "UTF-8");
+            ps.println("<!DOCTYPE html>");
+            ps.println("<html>");
+            ps.println("<head>");
+            ///ps.println("<link rel=\"stylesheet\" id=\"smartmag-core-css\" href=\"http://scrumbucket.org/wp-content/themes/smart-mag/style.css?ver=2.4.1\" type=\"text/css\" media=\"all\">");
+            ps.println("</head>");
+            ps.println("<body>");
+            Map<String, Object> allData = reporter.getJmxObjectData();
+            ps.print("<ol>");
+            for (Object obj : reporter.getJmxObjectData().values()) {
+                ps.println(makeReportJmxObject(obj));
+
+            }
+            ps.print("</ol>");
+            ps.println("</body>");
+            ps.println("</html>");
+            ps.close();
+            logger.info("DONE");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (os != null) {
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    logger.error("Exception when close file", e);
+                }
+            }
+        }
+        logger.info("Report to file: {}", path.toAbsolutePath().toString());
+
     }
 
 

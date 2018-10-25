@@ -16,7 +16,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.zboo.tool.JmxReporter" level="DEBUG" additivity="true">
+    <logger name="com.zboo.tool.JmxExporter" level="DEBUG" additivity="true">
         <appender-ref ref="FILE"/>
 
     </logger>

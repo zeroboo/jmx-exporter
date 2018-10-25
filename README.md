@@ -1,4 +1,4 @@
-# JMX Exporter  
+# JMX Reporter  
 
 A simple JAVA client for extracting JMX data from a JMX-enabled java process.
 
@@ -17,14 +17,14 @@ mvn clean package
 ```
 Go to folder target and execute the jar file for printing out usage
 ```
-java -jar jmx-exporter-0.0.1-full.jar
+java -jar jmx-Reporter-0.0.1-full.jar
 ```
 
 ---
 
 # Usage
 
-java -jar jmx-exporter-1.0-full.jar [-ssl] [-d=Description] -f=Format of output file
+java -jar jmx-Reporter-1.0-full.jar [-ssl] [-d=Description] -f=Format of output file
                    -h=RemoteHost -o=OutputFile -p=RemotePort [-ps=Password]
                    [-u=JMX url path] [-us=Username] [Object names...]
 `
